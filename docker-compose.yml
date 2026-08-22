@@ -1,0 +1,239 @@
+# Busca Base — one Compose stack for local and production.
+# Profiles:
+#   default   postgres redis api web
+#   edge      Caddy (local TLS on 80/443)
+#   ingest    one-shot snapshot download + load + embed
+#   backup    Postgres dump
+#
+# Production on Coolify: docker-compose.coolify.yml (no Caddy).
+
+name: buscabase
+
+x-api-env: &api-env
+  ORIGIN: ${ORIGIN:-http://localhost}
+  PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost}
+  POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  POSTGRES_DB: ${POSTGRES_DB:-buscabase}
+  POSTGRES_USER: ${POSTGRES_USER:-buscabase}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buscabase-local}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-buscabase}:${POSTGRES_PASSWORD:-buscabase-local}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-buscabase}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  CACHE_HMAC_SECRET: ${CACHE_HMAC_SECRET:-buscabase-local-hmac-key-not-for-production}
+  USO_USER: ${USO_USER:-uso}
+  USO_PASSWORD: ${USO_PASSWORD:-}
+  CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-604800}
+  LOG_TTL_SECONDS: ${LOG_TTL_SECONDS:-1209600}
+  BNCC_DADOS_TAG: ${BNCC_DADOS_TAG:-dados-2026.07.1}
+  BNCC_DADOS_OWNER: ${BNCC_DADOS_OWNER:-bncc-dev}
+  BNCC_DADOS_REPO: ${BNCC_DADOS_REPO:-bncc-dados}
+  BNCC_SNAPSHOT_DIR: ${BNCC_SNAPSHOT_DIR:-/data/snapshots}
+  BNCC_CATALOG_DIR: ${BNCC_CATALOG_DIR:-/data/catalog}
+  BNCC_PROSE_DIR: ${BNCC_PROSE_DIR:-/data/prose}
+  GITHUB_API_URL: ${GITHUB_API_URL:-https://api.github.com}
+  GITHUB_ETAG_PATH: ${GITHUB_ETAG_PATH:-/data/snapshots/ETAG}
+  OPENROUTER_API_URL: ${OPENROUTER_API_URL:-https://openrouter.ai/api/v1}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  EMBEDDING_API_URL: ${EMBEDDING_API_URL:-https://openrouter.ai/api/v1}
+  EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-google/gemini-embedding-001}
+  EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-3072}
+  EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-1}
+  EMBEDDING_TIMEOUT_SECONDS: ${EMBEDDING_TIMEOUT_SECONDS:-120}
+  RERANK_API_URL: ${RERANK_API_URL:-https://openrouter.ai/api/v1}
+  RERANK_API_KEY: ${RERANK_API_KEY:-}
+  RERANK_MODEL: ${RERANK_MODEL:-jina/jina-reranker-v3.5}
+  RERANK_TOP_K: ${RERANK_TOP_K:-10}
+  RERANK_CANDIDATES: ${RERANK_CANDIDATES:-24}
+  RETRIEVE_CANDIDATES: ${RETRIEVE_CANDIDATES:-80}
+  GENERATION_API_URL: ${GENERATION_API_URL:-https://openrouter.ai/api/v1}
+  GENERATION_API_KEY: ${GENERATION_API_KEY:-}
+  GENERATION_MODEL: ${GENERATION_MODEL:-deepseek/deepseek-v4-flash}
+  GENERATION_MAX_TOKENS: ${GENERATION_MAX_TOKENS:-700}
+  GENERATION_TEMPERATURE: ${GENERATION_TEMPERATURE:-0.2}
+  GENERATION_TIMEOUT_SECONDS: ${GENERATION_TIMEOUT_SECONDS:-120}
+  GENERATION_EXTRA_BODY: ${GENERATION_EXTRA_BODY:-{"thinking":{"type":"disabled"},"reasoning":{"enabled":false,"effort":"none"}}}
+  PERGUNTAR_ENABLED: ${PERGUNTAR_ENABLED:-true}
+  PERGUNTAR_QUEUE_LIMIT: ${PERGUNTAR_QUEUE_LIMIT:-32}
+  PERGUNTAR_RATE_LIMIT_IP: ${PERGUNTAR_RATE_LIMIT_IP:-20}
+  PERGUNTAR_RATE_WINDOW_SECONDS: ${PERGUNTAR_RATE_WINDOW_SECONDS:-3600}
+  PERGUNTAR_SESSION_LIMIT: ${PERGUNTAR_SESSION_LIMIT:-12}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-buscabase}
+      POSTGRES_USER: ${POSTGRES_USER:-buscabase}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buscabase-local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-buscabase} -d ${POSTGRES_DB:-buscabase}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - internal
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *api-env
+    volumes:
+      - snapshot_data:/data/snapshots
+      - catalog_data:/data/catalog
+      - backup_data:/data/backups
+      - ./data/prose:/data/prose:z
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    expose:
+      - "8000"
+    networks:
+      - internal
+      - edge
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost}
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+    restart: unless-stopped
+    environment:
+      ORIGIN: ${ORIGIN:-http://localhost}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      USO_USER: ${USO_USER:-uso}
+      USO_PASSWORD: ${USO_PASSWORD:-}
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      - catalog_data:/data/catalog:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    expose:
+      - "3000"
+    networks:
+      - edge
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["edge"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ORIGIN: ${ORIGIN:-http://localhost}
+      CADDY_EMAIL: ${CADDY_EMAIL:-admin@localhost}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+
+  ingest:
+    profiles: ["ingest"]
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *api-env
+    volumes:
+      - snapshot_data:/data/snapshots
+      - catalog_data:/data/catalog
+      - ./data/prose:/data/prose:z
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.ingest", "--apply"]
+    networks:
+      - internal
+
+  backup:
+    profiles: ["backup"]
+    image: pgvector/pgvector:pg16
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-buscabase-local}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-buscabase}
+      POSTGRES_DB: ${POSTGRES_DB:-buscabase}
+      BACKUP_DIR: /data/backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - backup_data:/data/backups
+      - ./scripts/backup.sh:/backup.sh:ro,z
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["bash", "/backup.sh"]
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  redis_data:
+  snapshot_data:
+  catalog_data:
+  backup_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  internal:

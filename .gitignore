@@ -1,0 +1,79 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+credentials.json
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Node / SvelteKit
+node_modules/
+.svelte-kit/
+apps/web/build/
+apps/web/.output/
+apps/web/vite.config.ts.timestamp-*
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Snapshots and generated data (downloaded at ingest)
+data/snapshots/
+data/catalog/
+data/prose/pdfs/
+vendor/bncc-dados/snapshot/
+*.sqlite
+*.dump
+
+# Model caches
+.cache/
+hf-cache/
+huggingface/
+models/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Logs and metrics dumps
+logs/
+*.log
+prom-data/
+
+# Backups
+backups/
+*.sql.gz
+
+# Test artifacts
+playwright-report/
+test-results/
+blob-report/
+coverage/
+.lighthouseci/
+
+# Cursor
+.cursor/

@@ -1,0 +1,3 @@
+# Keep generated catalog out of git; ingest writes catalog.json at runtime.
+*.json
+!.gitkeep

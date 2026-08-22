@@ -1,0 +1,13 @@
+.git
+.github
+research
+**/__pycache__
+**/.venv
+**/node_modules
+**/.svelte-kit
+apps/web/build
+data
+backups
+.cursor
+*.md
+!README.md
