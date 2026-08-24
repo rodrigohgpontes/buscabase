@@ -3,11 +3,13 @@
 	import Cabecalho from '$lib/components/Cabecalho.svelte';
 	import Confete from '$lib/components/Confete.svelte';
 	import Rodape from '$lib/components/Rodape.svelte';
+	import WidgetDeRecado from '$lib/components/WidgetDeRecado.svelte';
 	import { SITE_ORIGIN } from '$lib/social';
 	import '$lib/styles/app.css';
 
 	let { data, children } = $props();
 	const isHome = $derived(page.url.pathname === '/');
+	const mostrarRecado = $derived(!page.url.pathname.startsWith('/uso'));
 </script>
 
 <svelte:head>
@@ -24,3 +26,6 @@
 	</main>
 	<Rodape recorte={data.recorte} perguntarAtivo={data.perguntar} />
 </div>
+{#if mostrarRecado}
+	<WidgetDeRecado />
+{/if}

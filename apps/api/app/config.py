@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     perguntar_rate_limit_ip: int = 20
     perguntar_rate_window_seconds: int = 3600
     perguntar_session_limit: int = 12
+    recado_rate_limit_ip: int = 5
+    recado_rate_window_seconds: int = 3600
 
     log_level: str = "INFO"
 

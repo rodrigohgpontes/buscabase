@@ -23,7 +23,10 @@
 		<span>Privacidade</span>
 	</nav>
 	<h1>Privacidade</h1>
-	<p>O Busca Base não exige conta e não pede nome, escola ou dados de estudante.</p>
+	<p>
+		O Busca Base não exige conta. Não pedimos escola nem dados de estudante. Nome e e-mail só
+		aparecem se você mandar um recado.
+	</p>
 	<p>
 		Esta página descreve o tratamento de dados pessoais segundo a Lei Geral de Proteção de Dados
 		(LGPD).
@@ -36,7 +39,10 @@
 	</p>
 
 	<h2>O que tratamos</h2>
-	<p>Não criamos cadastro. Não pedimos nome, e-mail, escola nem identificadores de estudante.</p>
+	<p>
+		Não criamos cadastro. Não pedimos escola nem identificadores de estudante. Nome e e-mail só são
+		pedidos se você escolher mandar um recado, para podermos responder.
+	</p>
 	<p>
 		Quando você busca ou pergunta, o texto da consulta é processado para devolver resultados ou uma
 		resposta com fontes. Evite colar dados pessoais — o site não precisa deles.
@@ -50,6 +56,12 @@
 	<p>
 		Não gravamos o endereço IP junto da consulta. O servidor que entrega o site pode registrar
 		dados técnicos de acesso, como IP, pelo tempo necessário à operação e à segurança.
+	</p>
+	<p>
+		Se você mandar um recado, guardamos neste servidor o nome, o e-mail, a mensagem e a página em
+		que o recado foi enviado. Não usamos ferramenta de formulário de terceiros. A base é o
+		consentimento ao enviar. Para apagar um recado, escreva para
+		<a href="mailto:contato@rodrigopontes.com.br">contato@rodrigopontes.com.br</a>.
 	</p>
 
 	<h2>Cache</h2>
@@ -77,11 +89,12 @@
 		<li>atender o pedido de consulta, busca ou pergunta;</li>
 		<li>manter o site funcionando e diagnosticar falhas;</li>
 		<li>entender o uso do serviço;</li>
-		<li>evitar trabalho repetido com o cache de curta duração.</li>
+		<li>evitar trabalho repetido com o cache de curta duração;</li>
+		<li>receber e responder recados, quando você os envia.</li>
 	</ul>
 	<p>
-		A base é o atendimento do seu pedido e o interesse legítimo em operar e proteger o serviço, sem
-		prejudicar direitos.
+		A base é o atendimento do seu pedido, o interesse legítimo em operar e proteger o serviço, sem
+		prejudicar direitos, e o consentimento quando você manda um recado.
 	</p>
 
 	<h2>Compartilhamento e tratamento fora do Brasil</h2>

@@ -58,11 +58,9 @@
 
 <MetasSociais {title} {description} url={absoluteUrl('/uso')} noindex />
 
-<div class="wrap reading uso">
-	<h1>Uso</h1>
-	<p class="lede">
-		Últimos {data.dias} dias. Visitantes do dia são estimados sem cookie. Consultas ficam gravadas
-		neste servidor.
+<div class="uso-dashboard">
+	<p class="help">
+		Últimos {data.dias} dias. Visitantes do dia são estimados sem cookie.
 	</p>
 	<p class="help">
 		Período:
@@ -168,17 +166,17 @@
 </div>
 
 <style>
-	.uso {
+	.uso-dashboard {
 		display: grid;
 		gap: var(--space-8);
 	}
 
-	.uso section {
+	.uso-dashboard section {
 		display: grid;
 		gap: var(--space-4);
 	}
 
-	.uso h3 {
+	.uso-dashboard h3 {
 		margin-top: var(--space-4);
 	}
 </style>

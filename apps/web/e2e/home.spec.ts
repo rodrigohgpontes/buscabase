@@ -18,6 +18,21 @@ test('home initial state', async ({ page }) => {
 	await expect(page.getByText('Os itens encontrados aparecem aqui.')).toBeVisible();
 });
 
+test('widget de recado abre o formulário', async ({ page }) => {
+	await page.goto('/');
+	const recado = page.getByRole('button', { name: 'Deixe um recado' });
+	await expect(recado).toBeVisible();
+	await recado.click();
+	await expect(page.getByRole('heading', { name: 'Deixe um recado' })).toBeVisible();
+	await expect(
+		page.getByText('Sugestões para melhorar o Busca Base são bem-vindas.')
+	).toBeVisible();
+	await expect(page.getByLabel('Nome')).toBeVisible();
+	await expect(page.getByLabel('E-mail')).toBeVisible();
+	await expect(page.getByLabel('Mensagem')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Enviar recado' })).toBeVisible();
+});
+
 test('axe home', async ({ page }) => {
 	await page.goto('/');
 	const results = await new AxeBuilder({ page }).analyze();

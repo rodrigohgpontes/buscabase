@@ -174,6 +174,17 @@ class UsageEvent(Base):
     visitor_day: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class Recado(Base):
+    __tablename__ = "recados"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    nome: Mapped[str] = mapped_column(Text)
+    email: Mapped[str] = mapped_column(Text)
+    mensagem: Mapped[str] = mapped_column(Text)
+    pagina: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class ProseDocument(Base):
     __tablename__ = "prose_documents"
 

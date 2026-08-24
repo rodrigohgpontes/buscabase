@@ -8,17 +8,25 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, load_only
 
 from app.cache import cache_get, cache_set
 from app.codes import CodeError, alphanumeric_prefix_len, normalize_code
 from app.config import settings
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.models import Area, Componente, Documento, Etapa, Item, ProseBlock, ProseDocument, ProsePage, Recorte, Snapshot
 from app.perguntar import perguntar_disponivel, rate_limit, stream_answer
 from app.privacy import client_ip, record_event
+from app.recados import (
+    criar_recado,
+    email_ok,
+    listar_recados,
+    public_recado,
+    recado_rate_ok,
+    sanitize_pagina,
+)
 from app.usage import event_rate_ok, ingest_from_request, require_uso, uso_resumo
 from app.prose import STRIP_TYPES
 from app.retrieval import (
@@ -595,6 +603,72 @@ def uso(
     db: Session = Depends(get_db),
 ) -> dict:
     return uso_resumo(db, dias)
+
+
+class RecadoBody(BaseModel):
+    nome: str = Field(max_length=120)
+    email: str = Field(max_length=254)
+    mensagem: str = Field(max_length=4000)
+    pagina: str | None = Field(default=None, max_length=200)
+
+    @field_validator("nome", "email", "mensagem", "pagina", mode="before")
+    @classmethod
+    def strip_text(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+@router.post("/recados")
+def criar_recado_publico(body: RecadoBody, request: Request) -> dict:
+    ip = client_ip(request)
+    if not recado_rate_ok(ip):
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "titulo": "Você atingiu o limite deste período.",
+                "texto": "Tente de novo em instantes.",
+            },
+        )
+    nome = body.nome
+    email = body.email.lower()
+    mensagem = body.mensagem
+    if not nome or not email or not mensagem:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "titulo": "Preencha nome, e-mail e mensagem.",
+                "texto": "Os três campos são obrigatórios.",
+            },
+        )
+    if not email_ok(email):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "titulo": "Informe um e-mail válido.",
+                "texto": "Confira o endereço e tente novamente.",
+            },
+        )
+    db = SessionLocal()
+    try:
+        criar_recado(
+            db,
+            nome=nome,
+            email=email,
+            mensagem=mensagem,
+            pagina=sanitize_pagina(body.pagina),
+        )
+    finally:
+        db.close()
+    return {"ok": True}
+
+
+@router.get("/recados")
+def listar_recados_uso(
+    _: str = Depends(require_uso),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"recados": [public_recado(row) for row in listar_recados(db)]}
 
 
 @router.get("/catalogo")

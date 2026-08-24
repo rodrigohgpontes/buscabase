@@ -87,6 +87,7 @@
 	--color-accent-green: #1f6b3c;
 	--color-on-primary: #ffffff;
 	--color-brand: #0a0a0a;
+	--color-canary: #ffef7a;
 
 	--button-primary-background: var(--color-primary);
 	--button-primary-hover: var(--color-primary-hover);
@@ -155,6 +156,7 @@ html[data-theme="folia"] {
 	--color-accent-green: #0b7a3e;
 	--color-on-primary: #ffffff;
 	--color-brand: #0a0a0a;
+	--color-canary: #ffef7a;
 	--font-title: "Calistoga", "Fira Sans", var(--font);
 }
 
@@ -667,6 +669,7 @@ h3 {
 
 input[type="text"],
 input[type="search"],
+input[type="email"],
 textarea,
 select {
 	min-height: 3rem;
@@ -1721,7 +1724,8 @@ button.cite:focus-visible {
 	.follow-up,
 	.follow-up-limit,
 	.confetti,
-	.confetti-burst {
+	.confetti-burst,
+	.recado-root {
 		display: none !important;
 	}
 
